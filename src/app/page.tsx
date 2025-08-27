@@ -146,7 +146,7 @@ export default function Home() {
                       handleAddIngredient();
                     }
                   }}
-                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-gray-900"
                   placeholder="e.g., chicken"
                 />
                 <button
