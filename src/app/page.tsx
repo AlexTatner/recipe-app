@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { FaSearch, FaSpinner, FaPlus, FaTimes, FaImage } from 'react-icons/fa';
 import { searchRecipesByIngredients, getRecipeInformation } from '../lib/api';
@@ -34,6 +34,9 @@ export default function Home() {
   const [ingredientList, setIngredientList] = useState<string[]>([]);
   const [selectedReceiptImage, setSelectedReceiptImage] = useState<File | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -69,6 +72,53 @@ export default function Home() {
     } finally {
       setIsScanning(false);
       setSelectedReceiptImage(null); // Clear selected image after scan
+    }
+  };
+
+  const startCamera = async () => {
+    setSelectedReceiptImage(null); // Clear any previously selected image
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+          setIsCameraActive(true);
+        }
+      } catch (error) {
+        console.error("Error accessing camera:", error);
+        // TODO: Show error message to user
+      }
+    } else {
+      console.error("getUserMedia not supported on this browser.");
+      // TODO: Show message to user
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const context = canvasRef.current.getContext('2d');
+      if (context) {
+        canvasRef.current.width = videoRef.current.videoWidth;
+        canvasRef.current.height = videoRef.current.videoHeight;
+        context.drawImage(videoRef.current, 0, 0, videoRef.current.videoWidth, videoRef.current.videoHeight);
+
+        canvasRef.current.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], "receipt_photo.png", { type: "image/png" });
+            setSelectedReceiptImage(file);
+            stopCamera();
+          }
+        }, 'image/png');
+      }
     }
   };
 
@@ -202,10 +252,40 @@ export default function Home() {
                 <input id="receipt-upload" type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
               </label>
             </div>
+            {!isCameraActive && (
+              <button
+                type="button"
+                onClick={startCamera}
+                className="w-full sm:w-auto flex items-center justify-center px-6 py-3 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-all duration-200 ease-in-out shadow-sm"
+              >
+                <FaImage className="mr-2" /> Take Photo
+              </button>
+            )}
+
+            {isCameraActive && (
+              <div className="flex flex-col items-center space-y-4">
+                <video ref={videoRef} autoPlay playsInline className="w-full max-w-md rounded-md shadow-md"></video>
+                <button
+                  type="button"
+                  onClick={capturePhoto}
+                  className="w-full sm:w-auto flex items-center justify-center px-6 py-3 bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition-all duration-200 ease-in-out shadow-sm"
+                >
+                  <FaImage className="mr-2" /> Capture Photo
+                </button>
+                <button
+                  type="button"
+                  onClick={stopCamera}
+                  className="w-full sm:w-auto flex items-center justify-center px-6 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-all duration-200 ease-in-out shadow-sm"
+                >
+                  Stop Camera
+                </button>
+              </div>
+            )}
+            <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
             <button
               type="button"
               onClick={handleScanReceipt}
-              disabled={!selectedReceiptImage || isScanning}
+              disabled={(!selectedReceiptImage && !isCameraActive) || isScanning}
               className="w-full sm:w-auto flex items-center justify-center px-6 py-3 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 disabled:bg-purple-300 transition-all duration-200 ease-in-out shadow-sm"
             >
               {isScanning ? (
