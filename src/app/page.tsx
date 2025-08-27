@@ -6,6 +6,7 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { FaSearch, FaSpinner, FaPlus, FaTimes, FaImage } from 'react-icons/fa';
 import { searchRecipesByIngredients, getRecipeInformation } from '../lib/api';
 import Changelog from './Changelog';
+import Image from 'next/image';
 
 interface FormData {
   ingredients: string;
@@ -16,6 +17,12 @@ interface Recipe {
   title: string;
   image: string;
   sourceUrl: string;
+}
+
+interface SearchResultRecipe {
+  id: number;
+  title: string;
+  image: string;
 }
 
 export default function Home() {
@@ -89,10 +96,10 @@ export default function Home() {
     try {
       const results = await searchRecipesByIngredients(ingredientList);
       if (results && results.length > 0) {
-        const recipeDetailsPromises = results.map((recipe: any) => getRecipeInformation(recipe.id));
+        const recipeDetailsPromises = results.map((recipe: SearchResultRecipe) => getRecipeInformation(recipe.id));
         const recipeDetails = await Promise.all(recipeDetailsPromises);
 
-        const formattedRecipes = results.map((recipe: any, index: number) => {
+        const formattedRecipes = results.map((recipe: SearchResultRecipe, index: number) => {
           const details = recipeDetails[index];
           return {
             id: recipe.id,
@@ -216,7 +223,7 @@ export default function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {recipes.map((recipe) => (
                 <div key={recipe.id} className="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300">
-                  <img src={recipe.image} alt={recipe.title} className="w-full h-48 object-cover" />
+                  <Image src={recipe.image} alt={recipe.title} width={400} height={400} className="w-full h-48 object-cover" />
                   <div className="p-4">
                     <h3 className="font-bold text-lg text-gray-900">{recipe.title}</h3>
                     <a
