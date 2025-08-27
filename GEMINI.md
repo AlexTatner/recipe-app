@@ -41,4 +41,6 @@ This section details the recent enhancements and fixes to the application, focus
 *   **Git Hygiene:** Added `nextprompt.txt` to `.gitignore` to prevent temporary build log files from being committed to the repository, maintaining a cleaner version control history.
 *   **Vercel Image Display Fix:** Resolved a 400 error encountered during Vercel deployment where images were not displaying. This was fixed by explicitly configuring the `img.spoonacular.com` domain in `next.config.ts` under `images.domains`. This ensures that Next.js's Image Optimization correctly handles images served from external sources in the Vercel environment.
 
+*   **`page.tsx` Syntax Fix (Stretch Goal):** Corrected a JSX syntax error in `src/app/page.tsx` at line 290, where a conditional rendering block was incorrectly placed as an attribute instead of a child of the `<button>` element. This fix ensures the receipt scanning feature (a stretch goal for the workshop) functions correctly.
+
 These updates collectively enhance the application's robustness, performance, and adherence to modern web development best practices, making it a more stable and efficient foundation for future development and deployment, especially in a Vercel pipeline.
