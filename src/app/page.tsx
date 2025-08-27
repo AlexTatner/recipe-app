@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { FaSearch, FaSpinner, FaPlus, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaSpinner, FaPlus, FaTimes, FaImage } from 'react-icons/fa';
 import { searchRecipesByIngredients, getRecipeInformation } from '../lib/api';
 import Changelog from './Changelog';
 
@@ -25,6 +25,45 @@ export default function Home() {
   const [noResults, setNoResults] = useState(false);
   const [ingredientInput, setIngredientInput] = useState('');
   const [ingredientList, setIngredientList] = useState<string[]>([]);
+  const [selectedReceiptImage, setSelectedReceiptImage] = useState<File | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setSelectedReceiptImage(event.target.files[0]);
+    }
+  };
+
+  const handleScanReceipt = async () => {
+    if (!selectedReceiptImage) return;
+
+    setIsScanning(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedReceiptImage);
+
+      const response = await fetch('/api/tabscanner', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.ingredients && data.ingredients.length > 0) {
+        const newIngredients = data.ingredients.filter((ing: string) => !ingredientList.includes(ing.toLowerCase()));
+        setIngredientList((prev) => [...prev, ...newIngredients.map((ing: string) => ing.toLowerCase())]);
+      }
+    } catch (error) {
+      console.error('Error scanning receipt:', error);
+      // TODO: Show error message to user
+    } finally {
+      setIsScanning(false);
+      setSelectedReceiptImage(null); // Clear selected image after scan
+    }
+  };
 
   const handleAddIngredient = () => {
     const newIngredient = ingredientInput.trim().toLowerCase();
@@ -144,6 +183,31 @@ export default function Home() {
               </button>
             </div>
           </form>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Or Scan a Receipt</h2>
+          <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <div className="w-full sm:w-auto">
+              <label htmlFor="receipt-upload" className="cursor-pointer flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">
+                <FaImage className="mr-2" />
+                <span>{selectedReceiptImage ? selectedReceiptImage.name : 'Select Receipt Image'}</span>
+                <input id="receipt-upload" type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={handleScanReceipt}
+              disabled={!selectedReceiptImage || isScanning}
+              className="w-full sm:w-auto flex items-center justify-center px-6 py-3 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 disabled:bg-purple-300 transition-all duration-200 ease-in-out shadow-sm"
+            >
+              {isScanning ? (
+                <><FaSpinner className="animate-spin mr-2" /> Scanning...</>
+              ) : (
+                'Scan Receipt for Ingredients'
+              )}
+            </button>
+          </div>
         </div>
 
         {recipes.length > 0 && (
